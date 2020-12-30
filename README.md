@@ -1,86 +1,93 @@
 ![](https://cldup.com/95U80xyuHq.svg)
 
-This module provides an **easy** and **reliable** way to setup a WebRTC connection between peers and communicate using events (the [socket.io-protocol](https://github.com/Automattic/socket.io-protocol)).
+이 모듈은 피어 간의 WebRTC 연결을 설정하고 이벤트 (socket.io-protocol)를 사용하여 통신하는 **쉽고** **안정적인** 방법을 제공합니다.([socket.io-protocol](https://github.com/Automattic/socket.io-protocol))
 
-Socket.IO is used to transport [signalling data](http://www.html5rocks.com/en/tutorials/webrtc/infrastructure/#what-is-signaling) and as a fallback for clients where WebRTC `PeerConnection` is not supported.
+Socket.IO는 [신호 데이터](http://www.html5rocks.com/en/tutorials/webrtc/infrastructure/#what-is-signaling)를 전송하고 WebRTC `PeerConnection`이 지원되지 않는 클라이언트의 대체 수단으로 사용됩니다.
 
-## How to use
+## 사용하는 방법
 
-Create a socket connection, pass it to `P2P`. On the Client:
+소켓 연결을 만들고 P2P에 전달합니다.
+클라이언트코드 :
 
 ```js
-var P2P = require('socket.io-p2p');
-var io = require('socket.io-client');
+var P2P = require("socket.io-p2p");
+var io = require("socket.io-client");
 var socket = io();
 
 var p2p = new P2P(socket);
 
-p2p.on('ready', function(){
+p2p.on("ready", function () {
   p2p.usePeerConnection = true;
-  p2p.emit('peer-obj', { peerId: peerId });
-})
+  p2p.emit("peer-obj", { peerId: peerId });
+});
 
 // this event will be triggered over the socket transport
 // until `usePeerConnection` is set to `true`
-p2p.on('peer-msg', function(data){
+p2p.on("peer-msg", function (data) {
   console.log(data);
 });
 ```
 
-If you're not using browserify, then use the included standalone file `socketiop2p.min.js`. This exports a `P2P` constructor on `window`.
+browserify를 사용하지 않는 경우 포함 된 독립 실행 형 파일 `socketiop2p.min.js`를 사용하십시오.  
+이것은 `window`에 `P2P` 생성자를 내 보냅니다.
 
-On the server, use the [socket.io-p2p-server](https://github.com/tomcartwrightuk/socket.io-p2p-server) to take care of signalling. All clients who support WebRTC data connections will exchange signalling data via the default `/` namespace.
+서버에서 [socket.io-p2p-server](https://github.com/tomcartwrightuk/socket.io-p2p-server)를 사용하여 신호를 처리하십시오.  
+WebRTC 데이터 연결을 지원하는 모든 클라이언트는 기본 `/` 네임 스페이스를 통해 신호 데이터를 교환합니다.
 
 ```js
-var server = require('http').createServer();
-var io = require('socket.io')(server);
-var p2p = require('socket.io-p2p-server').Server;
+var server = require("http").createServer();
+var io = require("socket.io")(server);
+var p2p = require("socket.io-p2p-server").Server;
 io.use(p2p);
 server.listen(3030);
 ```
 
-WebRTC Peer connections can also be established by exchanging signalling data within a socket.io room. Do this by calling the `p2p` server within the `connection` callback:
+WebRTC 피어 연결은 socket.io 룸 내에서 신호 데이터를 교환하여 설정할 수도 있습니다.  
+`connection` 콜백 내에서 `p2p` 서버를 호출하면됩니다.
 
 ```js
-var server = require('http').createServer();
-var io = require('socket.io')(server);
-var p2p = require('socket.io-p2p-server').Server;
+var server = require("http").createServer();
+var io = require("socket.io")(server);
+var p2p = require("socket.io-p2p-server").Server;
 server.listen(3030);
 
-io.on('connection', function(socket){
+io.on("connection", function (socket) {
   clients[socket.id] = socket;
   socket.join(roomName);
   p2p(socket, null, room);
 });
 ```
 
-See [chat app](https://github.com/socketio/socket.io-p2p/tree/master/examples/chat) for full example.
+전체 예제 : [chat app](https://github.com/socketio/socket.io-p2p/tree/master/examples/chat)
 
 ## API
 
 ### `p2psocket = new P2P(socket, opts, cb)`
 
-Create a new socket.io-p2p connection.
+새로운 `socket.io-p2p` 연결을 만듭니다.
 
 The `opts` object can include options for setup of the overall socket.io-p2p connection as well as options for the individual peers - specified using `peerOpts`.
 
-- `numClients` - max number of peers each client can connect to; `5` by default.
-- `autoUpgrade` - upgrade to a p2p connection (from s.io one) when peers are ready; `true` by default
-- `peerOpts` - object of options to be passed to underlying peers. See [here](https://github.com/feross/simple-peer/blob/master/README.md#api) for currently supported options. See [here](examples/streaming) for an example.
+`opts` 객체는 `peerOpts`를 사용하여 지정된 개별 피어에 대한 옵션뿐만 아니라  
+전체 socket.io-p2p 연결 설정 옵션을 포함 할 수 있습니다.
 
-`cb` is an optional callback. Called when connection is upgraded to a WebRTC connection.
+- `numClients` - 각 클라이언트가 연결할 수있는 최대 피어 수, 기본값은 `5`입니다.
+- `autoUpgrade` - 피어가 준비되면 s.io에서 p2p 연결로 업그레이드 합니다. 기본값은 `true` 입니다
+- `peerOpts` - 기본 피어에 전달할 옵션 개체입니다. 현재 지원되는 옵션은 [여기](https://github.com/feross/simple-peer/blob/master/README.md#api)를 참조하십시오. 예를 보려면 [여기](examples/streaming)를 참조하십시오.
+
+`cb`는 선택적 콜백입니다. 연결이 WebRTC 연결로 업그레이드 될 때 호출됩니다.
 
 ### `p2psocket.on('upgrade', function (data) {})`
 
-Triggered when P2P connection is converted to a WebRTC one.
+P2P 연결이 WebRTC 연결로 변환 될 때 트리거됩니다.
 
 ### `p2psocket.on('peer-error', function (data) {})`
 
-Triggered when a `PeerConnection` object errors during signalling.
+신호를 보내는 동안 `PeerConnection` 개체 오류가 발생하면 트리거됩니다.
 
-## Roadmap of development
+## 개발 로드맵
 
-- Support for packets containing multiple binary blobs - packets can only contain one blob in this version
-- Allow a peer to act as a relay between peers that don't support PeerConnection and those that do.
+- 여러 이진 Blob을 포함하는 패킷 blobs 패킷은 이 버전에서 하나의 Blob 만 포함 할 수 있습니다
+- 피어가 PeerConnection을 지원하지 않는 피어와 지원하는 피어간에 릴레이 역할을 할 수 있도록 허용합니다.
 
-PRs and issue reports are most welcome.
+PR 및 문제 보고서를 환영합니다.
